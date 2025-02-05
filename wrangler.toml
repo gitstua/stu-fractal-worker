@@ -1,0 +1,7 @@
+name = "twilight-limit-4203"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[limits]
+  cpu_ms = 50       # Maximum CPU time for Paid Plan (in milliseconds)
+  memory_mb = 256   # Maximum memory for Paid Plan (in megabytes)

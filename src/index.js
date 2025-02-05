@@ -10,42 +10,97 @@
 
 export default {
 	async fetch(request, env, ctx) {
-	  // Parse seed from URL query parameters, or generate random seed
-	  const url = new URL(request.url);
-	  const seedParam = url.searchParams.get('seed');
-	  const seed = seedParam ? parseInt(seedParam) : Math.floor(Math.random() * 1000000);
-	  
-	  // Simple random number generator with seed
-	  const random = (() => {
-		let state = seed;
-		return () => {
-		  state = (state * 1664525 + 1013904223) >>> 0;
-		  return state / 0xFFFFFFFF;
-		};
-	  })();
-	  
-	  const width = 300, height = 180, maxIter = 35; // Moderate size and iterations
-	  const pixelData = new Uint8Array(width * height);
-	  
-	  // Parameters that can vary with seed
-	  const zoom = 2.8 + random() * 0.8;  // Moderate zoom variation
-	  const centerX = -0.65 + (random() - 0.5) * 0.3;  // Some position variation
-	  const centerY = (random() - 0.5) * 0.3;
-  
-	  // Mandelbrot Fractal Generation (8-bit)
-	  for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width; x++) {
-		  let zx = 0, zy = 0;
-		  const cx = (x - width / 2) * zoom / width + centerX;
-		  const cy = (y - height / 2) * zoom / height + centerY;
-		  let i = 0;
-		  while (zx * zx + zy * zy <= 4 && i < maxIter) {
-			const temp = zx * zx - zy * zy + cx;
-			zy = 2 * zx * zy + cy;
-			zx = temp;
-			i++;
-		  }
-		  
+		// Parse URL parameters
+		const url = new URL(request.url);
+		const seedParam = url.searchParams.get('seed');
+		const typeParam = url.searchParams.get('type');
+		const widthParam = url.searchParams.get('width');
+		const heightParam = url.searchParams.get('height');
+		const bmpParam = url.searchParams.get('bmp');
+		const iterParam = url.searchParams.get('iter');
+		const useBmp = bmpParam !== 'false'; // defaults to true
+		const seed = seedParam ? parseInt(seedParam) : Math.floor(Math.random() * 1000000);
+		
+		// Set size limits based on format
+		const maxWidth = useBmp ? 800 : 320;
+		const maxHeight = useBmp ? 600 : 200;
+
+		// Apply size limits
+		const requestedWidth = widthParam ? parseInt(widthParam) : 720;
+		const requestedHeight = heightParam ? parseInt(heightParam) : 432;
+		
+		const width = Math.min(requestedWidth, maxWidth);
+		const height = Math.min(requestedHeight, maxHeight);
+		
+		// Parse iterations parameter with default of 35
+		const maxIter = iterParam ? parseInt(iterParam) : 50;
+		
+		// Simple random number generator with seed
+		const random = (() => {
+			let state = seed;
+			return () => {
+				state = (state * 1664525 + 1013904223) >>> 0;
+				return state / 0xFFFFFFFF;
+			};
+		})();
+		
+		// Randomly choose fractal type if not specified
+		const fractalType = typeParam || (random() < 0.5 ? 'mandelbrot' : 'julia');
+		
+		const pixelData = new Uint8Array(width * height * 4);
+		
+		// Parameters that vary with seed and fractal type
+		const zoom = 2.8 + random() * 0.8;
+		let centerX = -0.65 + (random() - 0.5) * 0.3;
+		let centerY = (random() - 0.5) * 0.3;
+
+		// Julia set parameters (when needed)
+		const juliaX = -0.4 + random() * 0.8;
+		const juliaY = -0.4 + random() * 0.8;
+
+		// Adjust parameters based on fractal type
+		if (fractalType === 'julia') {
+			centerX = 0;
+			centerY = 0;
+		}
+
+		// Fractal Generation (8-bit)
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+				let zx = 0, zy = 0;
+				const cx = (x - width / 2) * zoom / width + centerX;
+				const cy = (y - height / 2) * zoom / height + centerY;
+
+				// Initialize based on fractal type
+				if (fractalType === 'julia') {
+					zx = cx;
+					zy = cy;
+				}
+
+				let i = 0;
+				while (zx * zx + zy * zy <= 4 && i < maxIter) {
+					let temp;
+					switch (fractalType) {
+						case 'julia':
+							temp = zx * zx - zy * zy + juliaX;
+							zy = 2 * zx * zy + juliaY;
+							zx = temp;
+							break;
+
+						case 'burningship':
+							temp = zx * zx - zy * zy + cx;
+							zy = Math.abs(2 * zx * zy) + cy;
+							zx = temp;
+							break;
+
+						default: // mandelbrot
+							temp = zx * zx - zy * zy + cx;
+							zy = 2 * zx * zy + cy;
+							zx = temp;
+					}
+					i++;
+				}
+				
 		  // Simple grayscale coloring
 		  if (i === maxIter) {
 			pixelData[y * width + x] = 0; // Black for points inside set
@@ -55,17 +110,26 @@ export default {
 		  }
 		}
 	  }
-  
-	  // Minimal PNG Encoding
-	  const pngData = createMinimalPNG(width, height, pixelData);
-  
-	  return new Response(pngData, {
-		headers: {
-		  'Content-Type': 'image/png',
-		  'Content-Disposition': `inline; filename="fractal-${seed}.png"`,
-		  'X-Fractal-Seed': seed.toString()
+		
+		if (useBmp) {
+			const bmpData = createMinimalBMP(width, height, pixelData);
+			return new Response(bmpData, {
+				headers: {
+					'Content-Type': 'image/bmp',
+					'Content-Disposition': `inline; filename="fractal-${seed}.bmp"`,
+					'X-Fractal-Seed': seed.toString()
+				}
+			});
+		} else {
+			const pngData = createMinimalPNG(width, height, pixelData);
+			return new Response(pngData, {
+				headers: {
+					'Content-Type': 'image/png',
+					'Content-Disposition': `inline; filename="fractal-${seed}.png"`,
+					'X-Fractal-Seed': seed.toString()
+				}
+			});
 		}
-	  });
 	}
 };
 
@@ -152,4 +216,57 @@ function createMinimalPNG(width, height, pixelData) {
 	]);
   
 	return new Uint8Array([...signature, ...header, ...headerCRC, ...dataChunk, ...endChunk]);
+}
+
+function createMinimalBMP(width, height, pixelData) {
+	const rowSize = Math.floor((width * 8 + 31) / 32) * 4;
+	const imageSize = rowSize * height;
+	const paletteSize = 256 * 4; // 256 colors * 4 bytes each
+	const headerSize = 54; // BMP header (14) + DIB header (40)
+	const fileSize = headerSize + paletteSize + imageSize;
+
+	const buffer = new ArrayBuffer(fileSize);
+	const view = new DataView(buffer);
+
+	// BMP Header
+	view.setUint16(0, 0x4D42, true); // BM
+	view.setUint32(2, fileSize, true);
+	view.setUint32(6, 0, true); // Reserved
+	view.setUint32(10, headerSize + paletteSize, true); // Pixel data offset
+
+	// DIB Header
+	view.setUint32(14, 40, true); // DIB header size
+	view.setInt32(18, width, true);
+	view.setInt32(22, -height, true); // Negative height for top-down image
+	view.setUint16(26, 1, true); // Color planes
+	view.setUint16(28, 8, true); // Bits per pixel (8-bit grayscale)
+	view.setUint32(30, 0, true); // No compression
+	view.setUint32(34, imageSize, true);
+	view.setInt32(38, 2835, true); // X pixels per meter (~72 DPI)
+	view.setInt32(42, 2835, true); // Y pixels per meter
+	view.setUint32(46, 256, true); // Color palette size
+	view.setUint32(50, 256, true); // Important colors
+
+	// Grayscale color palette
+	for (let i = 0; i < 256; i++) {
+		const offset = headerSize + i * 4;
+		view.setUint8(offset, i);     // Blue
+		view.setUint8(offset + 1, i); // Green
+		view.setUint8(offset + 2, i); // Red
+		view.setUint8(offset + 3, 0); // Reserved
+	}
+
+	// Pixel data
+	const dataOffset = headerSize + paletteSize;
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < width; x++) {
+			view.setUint8(dataOffset + y * rowSize + x, pixelData[y * width + x]);
+		}
+		// Pad row to 4-byte boundary if needed
+		for (let x = width; x < rowSize; x++) {
+			view.setUint8(dataOffset + y * rowSize + x, 0);
+		}
+	}
+
+	return new Uint8Array(buffer);
 }
