@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "twilight-limit-4203",
+  "name": "stu-fractal-worker",
   "main": "src/index.js",
   "compatibility_date": "2025-02-04",
   "observability": {
