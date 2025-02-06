@@ -2,6 +2,8 @@
 
 A Cloudflare Worker that generates fractals (Mandelbrot and Julia sets) on demand. The worker creates grayscale images in either BMP or PNG format.
 
+![example](preview/720x432.png)
+
 ## Features
 
 - Generates Mandelbrot and Julia set fractals
@@ -48,10 +50,18 @@ Here are some example requests you can make to the API:
 
 ### Generate a Random Mandelbrot Fractal (BMP)
 
-curl http://127.0.0.1
-
 Basic usage (random fractal, BMP format):
-
 http://localhost:8787/
 
-Basic usage: 
+Basic usage (specific size, BMP format, 70 iterations):
+http://localhost:8787/?width=720&height=432&seed=1234567890&type=mandelbrot&iter=50
+
+Basic usage (random fractal, PNG format):
+http://localhost:8787/?width=300&height=200&seed=1234567890&type=mandelbrot&iter=50&bmp=false
+
+
+## Limitations
+- The BMP format is limited to 800x600 pixels.
+- The PNG format is limited to 320x200 pixels.
+- The number of iterations is limited to 800.
+

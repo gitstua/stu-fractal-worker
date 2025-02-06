@@ -32,8 +32,8 @@ export default {
 		const width = Math.min(requestedWidth, maxWidth);
 		const height = Math.min(requestedHeight, maxHeight);
 		
-		// Parse iterations parameter with default of 35
-		const maxIter = iterParam ? parseInt(iterParam) : 50;
+		// Parse iterations parameter with a default of 50 and a maximum of 800
+		const maxIter = Math.min(iterParam ? parseInt(iterParam) : 50, 800);
 		
 		// Simple random number generator with seed
 		const random = (() => {
