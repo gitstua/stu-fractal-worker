@@ -1,11 +1,28 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Fractal image generation API using Cloudflare Workers
+ * 
+ * This worker generates grayscale fractal images (Mandelbrot and Julia sets)
+ * with configurable parameters via URL query strings:
+ * 
+ * - seed: Random seed for consistent results (default: random)
+ * - type: 'mandelbrot' or 'julia' (default: random)
+ * - width: Image width in pixels (max 800 for BMP, 320 for PNG)
+ * - height: Image height in pixels (max 600 for BMP, 200 for PNG) 
+ * - iter: Maximum iterations for detail level (default: 50, max: 800)
+ * - bmp: Use BMP format if 'true', PNG if 'false' (default: true)
+ * 
+ * Rate limiting is applied per IP address to prevent abuse.
+ * 
+ * Dependencies:
+ * - Cloudflare Workers KV namespace bound as RATE_LIMIT for rate limiting
+ * - Web Crypto API (available by default in Workers runtime)
+ * - Optional environment variable RATE_LIMIT_PER_IP to configure rate limit
+ * 
+ * Internal modules:
+ * - rateLimit.js: Rate limiting functionality
+ * - imageGenerators/bmp.js: BMP image format generation
+ * - imageGenerators/png.js: PNG image format generation
+ * - fractal.js: Core fractal generation algorithms
  */
 
 import { checkRateLimit } from './rateLimit';

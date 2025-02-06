@@ -1,3 +1,18 @@
+/**
+ * Rate limiting module for Cloudflare Workers
+ * 
+ * This module provides rate limiting functionality using Cloudflare Workers KV storage.
+ * It tracks requests per IP address (hashed for privacy) over a 1-hour window.
+ * 
+ * Dependencies:
+ * - Requires a Cloudflare Workers KV namespace bound as RATE_LIMIT
+ * - Uses Web Crypto API (available by default in Workers runtime)
+ * 
+ * Environment Variables:
+ * - RATE_LIMIT_PER_IP: Optional. Number of requests allowed per IP per hour. 
+ *                      Defaults to 200 if not set.
+ */
+
 export async function checkRateLimit(request, env) {
     const ip = request.headers.get('CF-Connecting-IP');
     const currentTime = Date.now();

@@ -1,3 +1,20 @@
+/**
+ * Fractal generation module for Mandelbrot and Julia sets
+ * 
+ * This module generates grayscale fractal images as pixel data arrays.
+ * It supports both Mandelbrot and Julia set fractals with randomized parameters.
+ * 
+ * Parameters:
+ * - width: Image width in pixels
+ * - height: Image height in pixels  
+ * - maxIter: Maximum iterations for escape-time calculation (affects detail level)
+ * - seed: Random seed to generate consistent parameters
+ * - fractalType: Either 'mandelbrot' or 'julia'
+ *
+ * Returns:
+ * - Uint8Array containing grayscale pixel data (0-255 values)
+ */
+
 export function generateFractal(width, height, maxIter, seed, fractalType) {
     const pixelData = new Uint8Array(width * height);
     
